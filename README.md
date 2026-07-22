@@ -1,5 +1,10 @@
 # OwnAI — a domain-specialized AI, built 100% from scratch
 
+[![tests](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml/badge.svg)](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![NumPy only](https://img.shields.io/badge/ML%20deps-NumPy%20only-orange)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
 > A question-answering AI that knows **one domain** and nothing else — with **no external AI APIs, no pretrained models, and no deep-learning frameworks**. The autograd engine, BPE tokenizer, word2vec embeddings, BM25 index and a mini-GPT transformer are all implemented by hand on top of NumPy.
 
 The demo domains are **New Super Mario Bros. Wii** (English) and **le Système solaire** (French — the same engine, another language, zero code change). Point it at any wiki, PDF set, or folder of notes via a small YAML config and it specializes to that subject.
@@ -81,6 +86,8 @@ python -m ownai.cli train     --domain domains/mario-wii.yaml --steps 3000
 python -m ownai.cli eval-lm   --domain domains/mario-wii.yaml   # perplexity
 python -m ownai.cli chat      --domain domains/mario-wii.yaml --generative
 ```
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Zlarien/OwnAI/blob/main/notebooks/train_colab.ipynb)
 
 The hand-written backprop genuinely trains — here is the loss on the tiny demo
 corpus (1.05M-parameter model, cosine LR schedule, 400 steps on a CPU laptop):
