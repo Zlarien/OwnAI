@@ -1,0 +1,47 @@
+# Domain configuration for "New Super Mario Bros. Wii".
+# Swap this file (or write a new one) to specialize OwnAI to ANY subject —
+# the code never changes, only this config and the data source.
+
+name: mario-wii
+display_name: "New Super Mario Bros. Wii — Domain AI"
+language: en
+seed: 0
+
+source:
+  # For the offline demo we ship a small hand-written knowledge base so the
+  # repo runs immediately after cloning. To build a real, large corpus,
+  # switch `type` to `wiki` and point at a MediaWiki API (example below).
+  type: local
+  paths:
+    - data/mario-wii/knowledge
+
+  # type: wiki
+  # api_url: "https://www.mariowiki.com/api.php"
+  # category: "Category:New Super Mario Bros. Wii"
+  # limit: 300
+
+chunking:
+  max_words: 160
+  overlap: 30
+
+retrieval:
+  embed_dim: 64
+  w2v_epochs: 30
+  alpha: 0.5      # blend: semantic weight; (1-alpha) lexical
+  top_k: 4
+
+model:
+  vocab_size: 3000
+  block_size: 128
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+  dropout: 0.1
+  batch_size: 16
+  lr: 0.0003
+  warmup: 100
+  weight_decay: 0.01
+
+eval:
+  qa_path: data/mario-wii/eval_qa.json
+  ks: [1, 3, 5]
