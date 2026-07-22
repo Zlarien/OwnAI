@@ -1,0 +1,40 @@
+# "Full" Mario Wii domain — pulls a REAL corpus from the live Super Mario Wiki
+# instead of the shipped hand-written demo files. Use this to get a genuinely
+# knowledgeable AI. Ingestion needs network; training is best on Colab.
+
+name: mario-wii-full
+display_name: "New Super Mario Bros. Wii — Full Wiki AI"
+language: en
+seed: 0
+
+source:
+  type: wiki
+  api_url: "https://www.mariowiki.com/api.php"
+  category: "Category:New Super Mario Bros. Wii"
+  limit: 60
+
+chunking:
+  max_words: 180
+  overlap: 30
+
+retrieval:
+  embed_dim: 96
+  w2v_epochs: 8      # word2vec is pure-Python; 8 is plenty for retrieval quality
+  alpha: 0.5
+  top_k: 5
+
+model:
+  vocab_size: 6000
+  block_size: 192
+  n_layer: 6
+  n_head: 6
+  n_embd: 192
+  dropout: 0.1
+  batch_size: 24
+  lr: 0.0003
+  warmup: 200
+  weight_decay: 0.01
+
+eval:
+  qa_path: data/mario-wii/eval_qa.json
+  ks: [1, 3, 5]

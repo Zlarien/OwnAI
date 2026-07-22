@@ -36,14 +36,17 @@ def test_extractive_drops_sentence_fragments():
     # Chunk boundaries can create a truncated fragment that is a prefix of a
     # full sentence. The answer must not contain the redundant fragment.
     chunks = [
-        Chunk(id="a", title="Ice", text="They are ice giants of a bluish color", source="s"),
-        Chunk(id="b", title="Ice", text="They are ice giants of a bluish color. Uranus spins on its side.", source="s"),
+        Chunk(id="a", title="Neptune", text="Neptune and Uranus are bluish ice giants", source="s"),
+        Chunk(id="b", title="Neptune", text="Neptune and Uranus are bluish ice giants. Uranus spins on its side.", source="s"),
+        # Filler docs so "bluish"/"ice"/"giants" are informative (rare), not ubiquitous.
+        Chunk(id="c", title="Star", text="The star makes Mario invincible.", source="s"),
+        Chunk(id="d", title="Goomba", text="A goomba is a weak enemy that walks.", source="s"),
     ]
     retr = HybridRetriever(embed_dim=16, seed=0)
     retr.index(chunks, w2v_epochs=10)
-    ans = ExtractiveAnswerer(retr).answer("what color are the ice giants", top_k=2, max_sentences=3)
+    ans = ExtractiveAnswerer(retr).answer("what are the bluish ice giants", top_k=2, max_sentences=3)
     # The fragment (no period) must not appear twice-worth of "ice giants".
-    assert ans.text.lower().count("bluish color") == 1
+    assert ans.text.lower().count("bluish ice giants") == 1
 
 
 def test_extractive_answer_has_no_duplicate_sentences():
