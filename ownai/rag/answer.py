@@ -42,11 +42,23 @@ class Answer:
     contexts: list[Chunk] = field(default_factory=list)
 
 
-def _overlap_score(q_tokens: set[str], sentence: str) -> float:
+def _overlap_score(q_tokens: set[str], sentence: str, idf: dict | None = None) -> float:
+    """Query/sentence overlap, IDF-weighted so rare words dominate stopwords.
+
+    Without idf this is plain shared-word count / sqrt(length). With idf (the
+    BM25 inverse document frequencies), matching a rare term like "comet"
+    counts far more than matching "is" or "the" — which is what makes the
+    selected sentence actually answer the question.
+    """
     s_tokens = set(tokenize(sentence))
     if not s_tokens:
         return 0.0
-    return len(q_tokens & s_tokens) / (len(s_tokens) ** 0.5)
+    shared = q_tokens & s_tokens
+    if idf is None:
+        weight = float(len(shared))
+    else:
+        weight = sum(idf.get(t, 0.0) for t in shared)
+    return weight / (len(s_tokens) ** 0.5)
 
 
 class ExtractiveAnswerer:
@@ -60,15 +72,29 @@ class ExtractiveAnswerer:
         if not hits:
             return Answer(text="I don't have information on that in my knowledge base.")
         q_tokens = set(tokenize(question))
+        idf = getattr(self.retriever, "bm25", None)
+        idf = idf.idf if idf is not None else None
 
-        scored, seen_sents = [], set()
+        # Collect unique sentences. Overlapping chunks repeat sentences, and
+        # chunk boundaries create fragments that are prefixes of a full
+        # sentence — keep only the longest form of each.
+        by_key = {}
         for chunk, _ in hits:
             for sent in split_sentences(chunk.text):
                 key = sent.lower()
-                if key in seen_sents:  # overlapping chunks repeat sentences
-                    continue
-                seen_sents.add(key)
-                scored.append((_overlap_score(q_tokens, sent), sent, chunk))
+                if key not in by_key:
+                    by_key[key] = (sent, chunk)
+
+        kept = []
+        keys = sorted(by_key, key=len, reverse=True)  # longest first
+        for key in keys:
+            if any(key != other and key in other for other in (k for k, _ in kept)):
+                continue  # this sentence is a substring of a longer kept one
+            kept.append((key, by_key[key]))
+
+        scored = [
+            (_overlap_score(q_tokens, sent, idf), sent, chunk) for _, (sent, chunk) in kept
+        ]
         scored.sort(key=lambda t: -t[0])
 
         chosen = scored[:max_sentences] if scored else []

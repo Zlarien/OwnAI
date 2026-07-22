@@ -216,6 +216,22 @@ def cmd_eval(args):
     print(f"Saved report -> {out}")
 
 
+def cmd_eval_lm(args):
+    from ownai.model import GPT
+    from ownai.model.train import evaluate_perplexity
+    from ownai.tokenizer import BPETokenizer
+
+    cfg = load_domain_config(args.domain)
+    art = _artifacts_dir(cfg, args.domain)
+    model = GPT.load(art / "model.npz")
+    tok = BPETokenizer.load(art / "tokenizer.json")
+    tokens = corpus_to_token_stream(_corpus_path(cfg, args.domain), tok)
+    ppl = evaluate_perplexity(
+        model, tokens, block_size=model.cfg.block_size, batch_size=8, seed=cfg.get("seed", 0), batches=args.batches
+    )
+    print(f"Mini-GPT perplexity on the corpus: {ppl:.2f}  (lower is better)")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ownai", description="Domain AI, 100% from scratch.")
     sub = p.add_subparsers(dest="command", required=True)
@@ -235,12 +251,15 @@ def build_parser() -> argparse.ArgumentParser:
     ch = add("chat", cmd_chat, "chat with the domain AI in the terminal")
     ch.add_argument("--generative", action="store_true", help="use the mini-GPT instead of extractive answers")
     add("eval", cmd_eval, "evaluate retrieval quality (Recall@k, MRR)")
+    el = add("eval-lm", cmd_eval_lm, "evaluate the mini-GPT language model (perplexity)")
+    el.add_argument("--batches", type=int, default=20)
     return p
 
 
 def main(argv=None):
-    # Ensure non-ASCII output prints on any console (e.g. Windows cp1252).
-    for stream in (sys.stdout, sys.stderr):
+    # Ensure non-ASCII I/O works on any console (e.g. Windows cp1252): accented
+    # questions must be read and answers printed correctly.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8")
         except (AttributeError, ValueError):

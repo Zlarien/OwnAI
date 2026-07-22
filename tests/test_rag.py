@@ -32,6 +32,20 @@ def test_extractive_answerer_selects_relevant_sentence():
     assert any("Star" in s for s in result.sources)
 
 
+def test_extractive_drops_sentence_fragments():
+    # Chunk boundaries can create a truncated fragment that is a prefix of a
+    # full sentence. The answer must not contain the redundant fragment.
+    chunks = [
+        Chunk(id="a", title="Ice", text="They are ice giants of a bluish color", source="s"),
+        Chunk(id="b", title="Ice", text="They are ice giants of a bluish color. Uranus spins on its side.", source="s"),
+    ]
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(chunks, w2v_epochs=10)
+    ans = ExtractiveAnswerer(retr).answer("what color are the ice giants", top_k=2, max_sentences=3)
+    # The fragment (no period) must not appear twice-worth of "ice giants".
+    assert ans.text.lower().count("bluish color") == 1
+
+
 def test_extractive_answer_has_no_duplicate_sentences():
     # Overlapping chunks can surface the same sentence twice; the answer must
     # not repeat it, and sources must be unique.
@@ -45,6 +59,31 @@ def test_extractive_answer_has_no_duplicate_sentences():
     sentences = split_sentences(ans.text)
     assert len(sentences) == len(set(sentences))
     assert len(ans.sources) == len(set(ans.sources))
+
+
+def test_extractive_prefers_rare_term_over_stopwords():
+    # The wrong sentence shares only common words with the query; the right one
+    # shares the rare, meaningful term. IDF weighting must pick the right one.
+    # A realistic corpus: "what/is/a/the" appear everywhere (low IDF), "comet"
+    # is rare (high IDF). The short stopword-heavy sentence would win under
+    # naive overlap; IDF weighting must pick the meaningful comet sentence.
+    # "what/is/a" appear in EVERY document (low IDF, as real stopwords are);
+    # only "comet" is rare. The short "what is a star" sentence would win under
+    # naive overlap; IDF weighting must pick the meaningful comet sentence.
+    docs = [
+        Chunk(id="0", title="Planet", text="What is a planet here. A planet is a large world.", source="s"),
+        Chunk(id="1", title="Star", text="What is a star here. A star is a hot ball of gas.", source="s"),
+        Chunk(id="2", title="Moon", text="What is a moon here. A moon is a natural satellite.", source="s"),
+        Chunk(id="3", title="Sun", text="What is a sun here. A sun is a bright star.", source="s"),
+        # The answer sentence shares only {a, is, comet} — no leading "what".
+        Chunk(id="4", title="Comet", text="A comet is a body of ice and dust travelling in deep space.", source="s"),
+    ]
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(docs, w2v_epochs=10)
+    ans = ExtractiveAnswerer(retr).answer("what is a comet", top_k=5, max_sentences=1)
+    # Naive overlap would pick a short "What is a <x> here" stopword sentence;
+    # IDF weighting picks the comet sentence because "comet" is the rare term.
+    assert "comet" in ans.text.lower()
 
 
 def test_extractive_answerer_handles_no_match_gracefully():

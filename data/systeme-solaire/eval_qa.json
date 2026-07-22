@@ -1,0 +1,14 @@
+[
+  {"question": "Quelle est la planète la plus proche du Soleil ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "Quelle est la planète la plus chaude ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "Pourquoi Mars est-elle appelée la planète rouge ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "Quelle est la plus grande planète du système solaire ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "Quelle planète possède un système d'anneaux ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "Combien de planètes compte le système solaire ?", "relevant": ["planetes#0", "planetes#1", "planetes#2"]},
+  {"question": "De quoi le Soleil est-il composé ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]},
+  {"question": "Combien de temps met la lumière du Soleil pour atteindre la Terre ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]},
+  {"question": "Qu'est-ce qu'une comète ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]},
+  {"question": "Où se trouve la ceinture d'astéroïdes ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]},
+  {"question": "Quelle est la plus grande lune du système solaire ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]},
+  {"question": "Qu'est-ce qui provoque les marées sur Terre ?", "relevant": ["soleil-et-lunes#0", "soleil-et-lunes#1"]}
+]
