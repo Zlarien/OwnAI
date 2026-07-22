@@ -39,6 +39,10 @@ def evaluate_retrieval(retriever, qa_pairs, ks=(1, 3, 5), top_k=None) -> dict:
     top_k = top_k or max(ks)
     ranked_lists, relevant_sets = [], []
     for pair in qa_pairs:
+        # Skip entries without gold labels (e.g. out-of-domain probes used only
+        # by answer-level evaluation).
+        if not pair.get("relevant"):
+            continue
         hits = retriever.search(pair["question"], top_k=top_k)
         ranked_lists.append([c.id for c, _ in hits])
         relevant_sets.append(set(pair["relevant"]))

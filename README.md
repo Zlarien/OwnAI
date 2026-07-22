@@ -136,7 +136,35 @@ python -m ownai.cli chat   --domain domains/systeme-solaire.yaml
 # ai   > Une comète est un corps composé de glace et de poussière...
 ```
 
+## Web UI
+
+A ChatGPT-style browser chat, served by the Python **standard library only** (no
+Flask/FastAPI) — the from-scratch ethos extends to the web layer:
+
+```bash
+python -m ownai.cli serve --domain domains/mario-wii.yaml
+# open http://127.0.0.1:8000
+```
+
+## Evaluation you can quote
+
+```bash
+python -m ownai.cli eval         --domain domains/mario-wii.yaml   # retrieval
+python -m ownai.cli eval-answers --domain domains/mario-wii.yaml   # answers
+python -m ownai.cli eval-lm      --domain domains/mario-wii.yaml   # perplexity
+```
+
+| metric | value | what it means |
+| --- | --- | --- |
+| recall@1 / mrr | 1.00 / 1.00 | retrieval finds the right passage first |
+| keyword_hit_rate | 1.00 | in-domain answers contain the expected fact |
+| abstention_accuracy | 1.00 | out-of-domain questions are correctly refused |
+
+*(on the shipped demo corpus)*
+
 ## Architecture
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the deep dive and [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ```
 ownai/
@@ -146,11 +174,12 @@ ownai/
 ├── tokenizer/     # byte-level BPE
 ├── data/          # generic ingestion (MediaWiki + local files) → chunks
 ├── retrieval/     # BM25 + word2vec + hybrid ranking
-├── model/         # mini-GPT (decoder-only transformer) + training loop
-├── rag/           # retrieve → answer (extractive & generative)
-├── eval/          # Recall@k, MRR
+├── model/         # mini-GPT + training loop; top-k / top-p / repetition-penalty sampling
+├── rag/           # retrieve → answer (extractive & generative) with a confidence gate
+├── eval/          # Recall@k, MRR, answer keyword hit-rate & abstention, perplexity
+├── web/           # stdlib-only browser chat UI
 ├── pipeline.py    # orchestration seams
-└── cli.py         # ingest / index / tokenizer / train / chat / eval
+└── cli.py         # ingest / index / tokenizer / train / chat / serve / eval*
 ```
 
 ## Running the tests

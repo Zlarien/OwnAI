@@ -65,23 +65,28 @@ STOPWORDS = frozenset(
 )
 
 
+# A term appearing in more than ~half the documents carries little topic
+# signal. In the BM25 idf formula idf = log(1 + (N-df+0.5)/(df+0.5)), df = N/2
+# gives idf = log(2) ≈ 0.69, so this threshold is a document-FRACTION cutoff and
+# is therefore robust to corpus size (unlike a percentile of the idf spread,
+# which chunk overlap can skew on small corpora).
+_MIN_INFORMATIVE_IDF = 0.6
+
+
 def _informative_terms(q_tokens: set[str], idf: dict | None) -> set[str]:
     """Query terms that actually carry topic meaning in THIS corpus.
 
     A term is informative if it is (a) not a function word, (b) present in the
-    corpus, and (c) not among the most common corpus words (low IDF, like
-    "mario" or "the"). If the query shares none of these with any answer
-    sentence, we have not really found an answer and should say so.
+    corpus, and (c) not near-ubiquitous (it appears in less than roughly half
+    the documents). If the query shares none of these with any answer sentence,
+    we have not really found an answer and should say so.
     """
     if not idf:
         return set()
-    values = sorted(idf.values())
-    # Exclude only the most common ~20% of vocabulary (the low-IDF tail).
-    low_bar = values[len(values) // 5]
     return {
         t
         for t in q_tokens
-        if t not in STOPWORDS and idf.get(t, 0.0) >= low_bar and t in idf
+        if t not in STOPWORDS and idf.get(t, 0.0) >= _MIN_INFORMATIVE_IDF
     }
 
 

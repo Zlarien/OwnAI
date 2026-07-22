@@ -216,6 +216,27 @@ def cmd_eval(args):
     print(f"Saved report -> {out}")
 
 
+def cmd_serve(args):
+    from ownai.web import serve
+
+    serve(args.domain, host=args.host, port=args.port, generative=args.generative)
+
+
+def cmd_eval_answers(args):
+    from ownai.eval import evaluate_answers
+    from ownai.rag import ExtractiveAnswerer
+    from ownai.retrieval import HybridRetriever
+
+    cfg = load_domain_config(args.domain)
+    art = _artifacts_dir(cfg, args.domain)
+    retr = HybridRetriever.load(art / "index")
+    answerer = ExtractiveAnswerer(retr)
+    qa = json.loads(Path(cfg["eval"]["qa_path"]).read_text(encoding="utf-8"))
+    report = evaluate_answers(answerer, qa)
+    for key, val in report.items():
+        print(f"  {key}: {val}")
+
+
 def cmd_eval_lm(args):
     from ownai.model import GPT
     from ownai.model.train import evaluate_perplexity
@@ -251,8 +272,13 @@ def build_parser() -> argparse.ArgumentParser:
     ch = add("chat", cmd_chat, "chat with the domain AI in the terminal")
     ch.add_argument("--generative", action="store_true", help="use the mini-GPT instead of extractive answers")
     add("eval", cmd_eval, "evaluate retrieval quality (Recall@k, MRR)")
+    add("eval-answers", cmd_eval_answers, "evaluate answer quality (keyword hit-rate, abstention)")
     el = add("eval-lm", cmd_eval_lm, "evaluate the mini-GPT language model (perplexity)")
     el.add_argument("--batches", type=int, default=20)
+    sv = add("serve", cmd_serve, "serve the web chat UI (browser)")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+    sv.add_argument("--generative", action="store_true", help="use the mini-GPT instead of extractive answers")
     return p
 
 

@@ -3,7 +3,7 @@
 Architecture (per GPT-2, scaled down):
     token embedding + learned positional embedding
     -> N x [ LayerNorm -> causal multi-head self-attention -> residual
-             LayerNorm -> MLP (4x) with GELU-ish -> residual ]
+             LayerNorm -> MLP (4x) with ReLU -> residual ]
     -> final LayerNorm -> linear head to vocab logits
 
 Every op (attention scores, causal mask, softmax, residuals) flows through the
@@ -112,18 +112,74 @@ class GPT(Module):
         return logits, loss
 
     # ------------------------------------------------------------- generation
-    def generate(self, idx, max_new_tokens: int, temperature: float = 1.0, top_k=None, seed=0):
+    def generate(
+        self,
+        idx,
+        max_new_tokens: int,
+        temperature: float = 1.0,
+        top_k=None,
+        top_p: float | None = None,
+        repetition_penalty: float = 1.0,
+        seed=0,
+    ):
+        """Autoregressively sample continuations, NumPy-only and seed-deterministic.
+
+        Sampling knobs, applied in this order to each step's logits:
+          1. repetition_penalty (CTRL, arXiv:1909.05858): for every token id
+             already present in that row's sequence, divide its logit by the
+             penalty when positive, else multiply -- both push the id toward
+             lower probability, discouraging loops. penalty=1.0 is a no-op.
+          2. temperature: flatten (>1) or sharpen (<1) the distribution.
+          3. top_k: keep only the k highest logits.
+          4. top_p (nucleus): keep the smallest set of highest-probability
+             tokens whose cumulative probability reaches top_p, then renormalize.
+             Applied after top_k when both are given; top_p=1.0 filters nothing.
+        """
         rng = np.random.default_rng(seed)
         idx = np.asarray(idx)
         for _ in range(max_new_tokens):
             cond = idx[:, -self.cfg.block_size :]
             logits = asnumpy(self(cond).data)[:, -1, :]     # (B,vocab)
+
+            # (1) Repetition penalty on raw logits, per row (each row has its
+            #     own history of already-emitted / prompt token ids).
+            if repetition_penalty != 1.0:
+                for b in range(logits.shape[0]):
+                    seen = np.unique(idx[b])                 # ids present in this row
+                    row = logits[b, seen]
+                    logits[b, seen] = np.where(
+                        row > 0, row / repetition_penalty, row * repetition_penalty
+                    )
+
+            # (2) Temperature.
             logits = logits / max(temperature, 1e-6)
+
+            # (3) Top-k: mask everything below the k-th largest logit.
             if top_k is not None:
                 kth = np.sort(logits, axis=-1)[:, -top_k][:, None]
                 logits = np.where(logits < kth, -np.inf, logits)
+
             probs = np.exp(logits - logits.max(axis=-1, keepdims=True))
             probs /= probs.sum(axis=-1, keepdims=True)
+
+            # (4) Top-p / nucleus. top_p=1.0 keeps every token (the smallest set
+            #     reaching cumulative prob 1.0 is the whole vocab), so we skip the
+            #     work and leave probs untouched -- identical to the no-top_p path.
+            if top_p is not None and top_p < 1.0:
+                order = np.argsort(probs, axis=-1)[:, ::-1]         # descending
+                sorted_probs = np.take_along_axis(probs, order, axis=-1)
+                cum = np.cumsum(sorted_probs, axis=-1)
+                # Drop tokens once cumulative prob has passed top_p, but always
+                # keep the first token that crosses the threshold (shift by one).
+                remove = cum > top_p
+                remove[:, 1:] = remove[:, :-1]
+                remove[:, 0] = False
+                sorted_probs = np.where(remove, 0.0, sorted_probs)
+                # Scatter the kept mass back to the original vocab order.
+                keep = np.zeros_like(probs)
+                np.put_along_axis(keep, order, sorted_probs, axis=-1)
+                probs = keep / keep.sum(axis=-1, keepdims=True)
+
             next_ids = np.array([rng.choice(probs.shape[1], p=p) for p in probs])
             idx = np.concatenate([idx, next_ids[:, None]], axis=1)
         return idx
