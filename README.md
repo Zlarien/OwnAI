@@ -95,16 +95,19 @@ python -m ownai.cli chat      --domain domains/mario-wii.yaml --generative
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Zlarien/OwnAI/blob/main/notebooks/train_colab.ipynb)
 
-The hand-written backprop genuinely trains — here is the loss on the tiny demo
-corpus (1.05M-parameter model, cosine LR schedule, 400 steps on a CPU laptop):
+The hand-written backprop genuinely trains — here is a real run: a 1.05M-parameter
+model, cosine LR schedule, **5000 steps on a free Colab GPU**, loss 7.8 → 0.2:
 
 ![Training loss](docs/loss_curve.png)
 
-On a small corpus the generative output is still imperfect and can hallucinate —
-this is expected and honestly documented. The **extractive mode is the reliable
-default**; the generative mode proves the transformer works. Training a real
-corpus is best done on a free GPU — see `notebooks/train_colab.ipynb` (NumPy
-transparently becomes CuPy).
+On this tiny demo corpus the model reaches a very low loss because it *memorizes*
+the text (train perplexity ≈ 1.2) — so its free-form generation is still
+incoherent. That is the expected behavior of a large-capacity model on a small
+dataset, and it is why the **extractive mode is the reliable default**: the
+generative mode proves the from-scratch transformer trains and runs, while
+coherent generation needs a much larger corpus (switch the domain to `type: wiki`
+and retrain). Training is best done on a free GPU — see
+`notebooks/train_colab.ipynb`, where NumPy transparently becomes CuPy.
 
 ## Use your own domain
 
