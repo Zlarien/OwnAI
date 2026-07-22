@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ownai"
+version = "0.1.0"
+description = "Domain-specialized AI built 100% from scratch: hand-written autograd, BPE tokenizer, word2vec, BM25 and a mini-GPT — no external AI APIs, no pretrained models, no deep learning frameworks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Nyrok" }]
+dependencies = [
+    "numpy>=1.26",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "matplotlib>=3.7"]
+gpu = ["cupy-cuda12x"]
+
+[tool.setuptools.packages.find]
+include = ["ownai*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

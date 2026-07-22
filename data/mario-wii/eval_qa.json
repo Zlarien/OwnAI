@@ -1,0 +1,18 @@
+[
+  {"question": "How does Mario become invincible?", "relevant": ["powerups#0", "powerups#1"]},
+  {"question": "What does the Propeller Mushroom do?", "relevant": ["powerups#0", "powerups#1"]},
+  {"question": "Which power-up lets Mario throw fireballs?", "relevant": ["powerups#0", "powerups#1"]},
+  {"question": "What does the Penguin Suit let Mario do?", "relevant": ["powerups#0", "powerups#1"]},
+  {"question": "How do you defeat a Goomba?", "relevant": ["enemies#0", "enemies#1"]},
+  {"question": "Why can't you stomp a Spiny?", "relevant": ["enemies#0", "enemies#1"]},
+  {"question": "What happens when you stomp a Dry Bones?", "relevant": ["enemies#0", "enemies#1"]},
+  {"question": "Which enemy is immune to fireballs?", "relevant": ["enemies#0", "enemies#1"]},
+  {"question": "How many players can play at the same time?", "relevant": ["gameplay#0", "gameplay#1"]},
+  {"question": "What are Star Coins used for?", "relevant": ["gameplay#0", "gameplay#1"]},
+  {"question": "What is the Super Guide?", "relevant": ["gameplay#0", "gameplay#1"]},
+  {"question": "How do you perform a spin move?", "relevant": ["gameplay#0", "gameplay#1"]},
+  {"question": "Who is the final boss of the game?", "relevant": ["worlds#0", "worlds#1"]},
+  {"question": "What theme is World 3?", "relevant": ["worlds#0", "worlds#1"]},
+  {"question": "Who are the Koopalings?", "relevant": ["worlds#0", "worlds#1"]},
+  {"question": "How do you unlock World 9?", "relevant": ["worlds#0", "worlds#1"]}
+]
