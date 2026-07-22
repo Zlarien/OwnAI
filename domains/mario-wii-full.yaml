@@ -8,10 +8,22 @@ language: en
 seed: 0
 
 source:
-  type: wiki
+  # Curated page list = a CLEAN, focused corpus. A whole category (below) drags
+  # in tangential pages (lists, galleries, franchise-wide articles about other
+  # games) that make answers drift off-topic. Prefer hand-picked pages.
+  type: wiki_pages
   api_url: "https://www.mariowiki.com/api.php"
-  category: "Category:New Super Mario Bros. Wii"
-  limit: 60
+  pages:
+    - "New Super Mario Bros. Wii"
+    - "Propeller Mushroom"
+    - "Penguin Suit"
+    - "Star Coin"
+    - "Super Guide"
+    - "Ice Flower"
+
+  # type: wiki                      # broad but noisy alternative
+  # category: "Category:New Super Mario Bros. Wii"
+  # limit: 60
 
 chunking:
   max_words: 180

@@ -37,6 +37,19 @@ def build_corpus_from_wiki(api_url, category, corpus_path, limit=500, max_words=
     return build_corpus_from_documents(docs, corpus_path, max_words=max_words, overlap=overlap)
 
 
+def build_corpus_from_wiki_pages(api_url, titles, corpus_path, max_words=180, overlap=30):
+    """Download a hand-picked list of wiki pages -> a clean, focused corpus.
+
+    Prefer this over a whole category when you want tight topical control: a
+    category often drags in tangential pages (lists, galleries, cross-game
+    references) that pollute the domain.
+    """
+    from ownai.data.mediawiki import fetch_pages
+
+    docs = fetch_pages(api_url, list(titles))
+    return build_corpus_from_documents(docs, corpus_path, max_words=max_words, overlap=overlap)
+
+
 def build_index_from_corpus(corpus_path, embed_dim=64, w2v_epochs=10, alpha=0.5, seed=0):
     """Load a corpus and build (in memory) the hybrid retriever."""
     chunks = read_corpus(corpus_path)

@@ -50,6 +50,14 @@ def cmd_ingest(args):
             limit=src.get("limit", 500),
             max_words=chunk.get("max_words", 180), overlap=chunk.get("overlap", 30),
         )
+    elif src.get("type") == "wiki_pages":
+        from ownai.pipeline import build_corpus_from_wiki_pages
+
+        print(f"Downloading {len(src['pages'])} wiki pages from {src['api_url']} ...")
+        chunks = build_corpus_from_wiki_pages(
+            src["api_url"], src["pages"], corpus_path,
+            max_words=chunk.get("max_words", 180), overlap=chunk.get("overlap", 30),
+        )
     else:  # local files
         paths = [Path(p) for p in src.get("paths", [])]
         print(f"Ingesting local files from: {', '.join(map(str, paths))}")
