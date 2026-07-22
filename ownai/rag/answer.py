@@ -35,11 +35,54 @@ def build_prompt(question: str, chunks: list[Chunk]) -> str:
     )
 
 
+NOT_FOUND = (
+    "I couldn't find anything about that in my knowledge base. Try rephrasing "
+    "with more specific keywords — and note that I only know this one domain, "
+    "and I answer in the language of the corpus."
+)
+
+
 @dataclass
 class Answer:
     text: str
     sources: list[str] = field(default_factory=list)
     contexts: list[Chunk] = field(default_factory=list)
+
+
+# Compact bilingual (EN + FR) function-word list. These carry no topic meaning
+# even when rare in the corpus (e.g. a "how"/"comment" that appears only once).
+# Our word tokenizer also splits French elisions (d', l', qu') into d/l/qu.
+STOPWORDS = frozenset(
+    """
+    a an the is are was were be been being do does did done has have had how what who whom
+    whose when where why which that this these those of in on at to from with without and or
+    not it its as for by can could will would should about into your you i we they he she
+    make makes made get gets give gives use used
+    le la les un une des de du est sont etre être ete été comment qui que quoi quel quelle quels
+    quelles quand ou où pourquoi dans sur a au aux et ne pas ce cet cette ces son sa ses pour par
+    avec plus tres très d l j c qu s n m t on se leur
+    """.split()
+)
+
+
+def _informative_terms(q_tokens: set[str], idf: dict | None) -> set[str]:
+    """Query terms that actually carry topic meaning in THIS corpus.
+
+    A term is informative if it is (a) not a function word, (b) present in the
+    corpus, and (c) not among the most common corpus words (low IDF, like
+    "mario" or "the"). If the query shares none of these with any answer
+    sentence, we have not really found an answer and should say so.
+    """
+    if not idf:
+        return set()
+    values = sorted(idf.values())
+    # Exclude only the most common ~20% of vocabulary (the low-IDF tail).
+    low_bar = values[len(values) // 5]
+    return {
+        t
+        for t in q_tokens
+        if t not in STOPWORDS and idf.get(t, 0.0) >= low_bar and t in idf
+    }
 
 
 def _overlap_score(q_tokens: set[str], sentence: str, idf: dict | None = None) -> float:
@@ -97,16 +140,18 @@ class ExtractiveAnswerer:
         ]
         scored.sort(key=lambda t: -t[0])
 
-        chosen = scored[:max_sentences] if scored else []
-        # Fallback: if nothing overlaps, return the single best chunk's first sentence.
-        if not chosen or chosen[0][0] == 0.0:
-            top_chunk = hits[0][0]
-            first = split_sentences(top_chunk.text)[:1] or [top_chunk.text]
-            return Answer(
-                text=" ".join(first),
-                sources=[f"{top_chunk.title} ({top_chunk.source})"],
-                contexts=[top_chunk],
-            )
+        # Confidence gate: keep only sentences that share an informative (rare,
+        # non-stopword) query term with the corpus. If none qualify, the query
+        # is out-of-domain or in the wrong language — admit it, don't guess.
+        informative = _informative_terms(q_tokens, idf)
+        relevant = [
+            (score, sent, chunk)
+            for score, sent, chunk in scored
+            if informative & set(tokenize(sent))
+        ]
+        if not relevant:
+            return Answer(text=NOT_FOUND)
+        chosen = relevant[:max_sentences]
 
         text = " ".join(s for _, s, _ in chosen)
         seen_src, sources, contexts = set(), [], []

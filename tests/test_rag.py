@@ -86,11 +86,57 @@ def test_extractive_prefers_rare_term_over_stopwords():
     assert "comet" in ans.text.lower()
 
 
-def test_extractive_answerer_handles_no_match_gracefully():
+def test_extractive_says_dont_know_instead_of_guessing():
+    # An out-of-domain query shares no meaningful term with the corpus. The
+    # answerer must admit it, NOT confidently return a random corpus sentence.
     retr = HybridRetriever(embed_dim=16, seed=0)
     retr.index(DOCS, w2v_epochs=10)
-    ans = ExtractiveAnswerer(retr)
-    result = ans.answer("completely unrelated quantum chromodynamics", top_k=2)
-    # Still returns a structured result, never crashes.
-    assert isinstance(result.text, str)
-    assert result.text  # non-empty (best-effort passage)
+    ans = ExtractiveAnswerer(retr).answer("quantum chromodynamics tax law", top_k=3)
+    assert ans.sources == []  # no source cited -> honest "not found"
+    for doc in DOCS:
+        assert doc.text not in ans.text  # did not parrot a corpus sentence
+
+
+def test_cross_lingual_query_is_refused_not_hallucinated():
+    # French question against an English corpus: only stopwords/names could
+    # match. Must refuse rather than return an unrelated English sentence.
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(DOCS, w2v_epochs=10)
+    ans = ExtractiveAnswerer(retr).answer("Comment Mario tire des boules de feu", top_k=3)
+    assert ans.sources == []
+
+
+def test_informative_query_still_answers():
+    # A query with a rare, in-corpus term ("invincible") must still answer.
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(DOCS, w2v_epochs=20)
+    ans = ExtractiveAnswerer(retr).answer("what makes Mario invincible", top_k=3)
+    assert "invincible" in ans.text.lower()
+    assert ans.sources
+
+
+def test_question_word_alone_does_not_make_it_confident():
+    # "how" is rare in the corpus (high IDF) but is a function word; a match on
+    # "how" alone must NOT count as finding an answer.
+    docs = [
+        Chunk(id="a", title="Guide", text="This shows you how to finish the level.", source="s"),
+        Chunk(id="b", title="Goomba", text="A goomba is a weak enemy.", source="s"),
+    ]
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(docs, w2v_epochs=10)
+    ans = ExtractiveAnswerer(retr).answer("how do dragons breathe", top_k=2)
+    assert ans.sources == []  # 'how' must not trigger a confident answer
+
+
+def test_answer_drops_trailing_irrelevant_sentence():
+    docs = [
+        Chunk(id="a", title="Star", text="The Star makes Mario invincible.", source="s1"),
+        Chunk(id="b", title="Guide", text="A green block lets Luigi finish the level for you.", source="s2"),
+    ]
+    retr = HybridRetriever(embed_dim=16, seed=0)
+    retr.index(docs, w2v_epochs=10)
+    ans = ExtractiveAnswerer(retr).answer("what makes Mario invincible", top_k=2, max_sentences=2)
+    # Only the invincible sentence is relevant; the Luigi sentence must be dropped.
+    assert "invincible" in ans.text.lower()
+    assert "luigi" not in ans.text.lower()
+    assert len(ans.sources) == 1

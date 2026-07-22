@@ -34,7 +34,7 @@ Every "build your own GPT" tutorial imports PyTorch and a pretrained tokenizer. 
 | **BPE tokenizer** | byte-level, merges, special tokens | lossless encode∘decode roundtrip |
 | **Retrieval** | BM25 + word2vec (skip-gram, neg. sampling) | ranks the right passage first |
 | **Mini-GPT** | causal multi-head attention, residual blocks | memorizes a sequence; causal-mask leak test |
-| **RAG + evaluation** | grounded answers, Recall@k, MRR, perplexity | end-to-end pipeline test |
+| **RAG + evaluation** | grounded answers, an "I don't know" confidence gate, Recall@k, MRR, perplexity | end-to-end pipeline test |
 
 All of it is covered by **67 passing tests** (`pytest`).
 
@@ -60,7 +60,13 @@ you > How does Mario become invincible?
 ai  > The Super Star makes Mario invincible for a short time. While invincible,
       Mario cannot be hurt by enemies or most hazards.
       sources: powerups (data/mario-wii/knowledge/powerups.md)
+
+you > What is the capital of France?
+ai  > I couldn't find anything about that in my knowledge base. Try rephrasing
+      with more specific keywords — I only know this one domain.
 ```
+
+The answerer only responds when the question shares an **informative** term with the corpus (IDF-weighted, function words filtered in EN & FR). Out-of-domain or wrong-language questions get an honest "I don't know" instead of a confident hallucination.
 
 Evaluate retrieval quality with real numbers:
 
