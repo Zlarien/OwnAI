@@ -1,0 +1,39 @@
+# Deuxième domaine de démonstration — EN FRANÇAIS.
+# Prouve que le moteur est agnostique au sujet ET à la langue : aucun code ne
+# change, seuls ce fichier et les données diffèrent du domaine mario-wii.
+
+name: systeme-solaire
+display_name: "Le Système solaire — IA de domaine"
+language: fr
+seed: 0
+
+source:
+  type: local
+  paths:
+    - data/systeme-solaire/connaissances
+
+chunking:
+  max_words: 150
+  overlap: 30
+
+retrieval:
+  embed_dim: 64
+  w2v_epochs: 30
+  alpha: 0.5
+  top_k: 4
+
+model:
+  vocab_size: 3000
+  block_size: 128
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+  dropout: 0.1
+  batch_size: 16
+  lr: 0.0003
+  warmup: 100
+  weight_decay: 0.01
+
+eval:
+  qa_path: data/systeme-solaire/eval_qa.json
+  ks: [1, 3, 5]
