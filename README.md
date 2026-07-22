@@ -113,6 +113,10 @@ source:
 # ... chunking / retrieval / model settings
 ```
 
+The `wiki` source type downloads and cleans articles straight from any live
+MediaWiki (verified against the real [Super Mario Wiki](https://www.mariowiki.com)
+API) — that is how you build a large, genuinely knowledgeable corpus.
+
 Then run the same commands. The engine specializes to your subject with no code changes. The repo ships a second, **French** domain (`domains/systeme-solaire.yaml` — the Solar System) to prove the engine is both subject- and language-agnostic:
 
 ```bash
