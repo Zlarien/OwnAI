@@ -165,3 +165,24 @@ def test_train_learns_resumes_exports_and_chats(tok, tmp_path):
     pieces = list(bot._stream([tok.eot] + tok.encode("Le chat"), 20, 0.0, None))
     assert "".join(pieces) == bot.complete("Le chat", 20, 0.0)
     assert "�" not in "".join(pieces)
+
+
+def test_repetition_penalty_breaks_loops(tok, tmp_path):
+    """A model trained on one repeated sentence loops; the penalty must stop it."""
+    from ownai.gpt.chat import OwnGPT
+
+    tok.save(tmp_path / "tok.json")
+    docs = [tmp_path / f"d{i}.txt" for i in range(3)]
+    for d in docs:
+        d.write_text("Le chat dort sur le tapis. " * 300, encoding="utf-8")
+    prepare_pretrain(tmp_path / "data", tmp_path / "tok.json", total_tokens=8_000, val_tokens=400,
+                     text_files=docs)
+    run = tmp_path / "run"
+    train(data=tmp_path / "data", out=run, preset="tiny", batch_size=4, grad_accum=1, warmup=2,
+          eval_every=1000, eval_iters=2, save_every=1000, lr=3e-3, max_steps=60)
+    bot = OwnGPT.load(run / "model.pt")
+    ids = [tok.eot] + tok.encode("Le chat")
+    looping = "".join(bot._stream(ids, 40, 0.0, None, penalty=0.0))
+    penalised = "".join(bot._stream(ids, 40, 0.0, None, penalty=3.0))  # this test model is extreme; a real one needs far less
+    assert looping.count("tapis") > 1  # without it, the sentence just repeats
+    assert penalised.count("tapis") < looping.count("tapis")
