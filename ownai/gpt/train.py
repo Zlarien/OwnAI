@@ -120,7 +120,10 @@ def train(stage="pretrain", data="data/owngpt/pretrain", out="runs/pretrain", pr
     device = pick_device(device)
     cuda = device.startswith("cuda")
     if cuda:
-        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        # Native bf16 needs Ampere (compute capability 8.0+). Older GPUs like the T4
+        # report bf16 as "supported" but only emulate it, slowly: use fp16 there.
+        native_bf16 = torch.cuda.get_device_capability()[0] >= 8
+        dtype = torch.bfloat16 if native_bf16 else torch.float16
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
     else:
