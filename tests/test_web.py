@@ -56,3 +56,20 @@ def test_build_handler_returns_handler_class():
     handler = build_handler(_answerer(), top_k=2)
     assert isinstance(handler, type)
     assert issubclass(handler, BaseHTTPRequestHandler)
+
+
+def test_registry_wraps_answerer_and_reports_mode():
+    from ownai.web import DomainRegistry
+
+    reg = DomainRegistry.from_answerer(_answerer(), top_k=2)
+    # Asking for the GPT on a domain without a model falls back to extractive.
+    result = reg.ask("How does Mario become invincible?", mode="generative")
+    assert result["mode"] == "extractive"
+    assert "invincible" in result["answer"].lower()
+    assert isinstance(result["ms"], int)
+    assert reg.public()[0]["has_model"] is False
+
+
+def test_page_never_shadows_window_history():
+    # A top-level `var history` silently resolves to window.history in the browser.
+    assert "var history" not in PAGE_HTML and "history.push" not in PAGE_HTML

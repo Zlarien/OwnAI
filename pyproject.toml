@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "matplotlib>=3.7"]
 gpu = ["cupy-cuda12x"]
+gpt = ["torch>=2.2", "tiktoken>=0.7", "datasets>=2.19", "regex>=2023.0"]
 
 [tool.setuptools.packages.find]
 include = ["ownai*"]

@@ -5,7 +5,7 @@
 ![NumPy only](https://img.shields.io/badge/ML%20deps-NumPy%20only-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-> A question-answering AI that knows **one domain** and nothing else — with **no external AI APIs, no pretrained models, and no deep-learning frameworks**. The autograd engine, BPE tokenizer, word2vec embeddings, BM25 index and a mini-GPT transformer are all implemented by hand on top of NumPy.
+> A question-answering AI that knows **one domain** and nothing else — with **no external AI APIs, no pretrained models, and no deep-learning frameworks**. The autograd engine, BPE tokenizer, word2vec embeddings, BM25 index and a mini-GPT transformer are all implemented by hand on top of NumPy. **OwnGPT** takes the same transformer to real scale: its own French tokenizer, a model written from scratch on PyTorch tensors, pretrained on a free GPU, then fine-tuned to chat in French.
 
 The demo domains are **New Super Mario Bros. Wii** (English) and **le Système solaire** (French — the same engine, another language, zero code change). Point it at any wiki, PDF set, or folder of notes via a small YAML config and it specializes to that subject.
 
@@ -109,6 +109,45 @@ coherent generation needs a much larger corpus (switch the domain to `type: wiki
 and retrain). Training is best done on a free GPU — see
 `notebooks/train_colab.ipynb`, where NumPy transparently becomes CuPy.
 
+## OwnGPT: a French GPT, built and trained from scratch
+
+The NumPy mini-GPT proves every gradient by hand, but it cannot train on billions
+of tokens. `ownai/gpt/` is the scaled-up version, and every piece of it lives in
+this repo: no pretrained weights, no borrowed vocabulary, no model zoo.
+
+| Piece | What is in the repo |
+|---|---|
+| Tokenizer | our own byte-level BPE, trained on French text (`tokenizer.py`); tiktoken only runs the learned merges fast |
+| Model | decoder-only transformer: RoPE, RMSNorm, SwiGLU, weight tying, KV-cache generation (`model.py`) |
+| Pretraining | FineWeb2-HQ French (quality-filtered web) + French Wikipedia |
+| Chat fine-tuning | French-Alpaca + translated chat corpora + OwnGPT's own identity set; loss on its replies only |
+| Metric | validation bits per byte, comparable across tokenizers |
+
+Why its own tokenizer: GPT-2's vocabulary was built for English. On French
+Wikipedia our 32k vocabulary packs **4.48 characters per token against 2.88 for
+GPT-2**, so the same compute reads about 55% more text.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Zlarien/OwnAI/blob/main/notebooks/owngpt_colab.ipynb)
+
+The notebook runs on free GPUs: **Kaggle** (30 GPU hours a week, 12-hour
+sessions that keep running with the browser closed) or **Colab**. It sizes the
+model to the GPU (`t4` preset, 42M parameters, on a free T4; `base`, 110M, on an
+A100), keeps data and checkpoints on persistent storage, and resumes after any
+disconnect. Same thing by hand:
+
+```bash
+pip install -e ".[gpt]"
+python -m ownai.gpt train-tokenizer                        # our French BPE vocabulary
+python -m ownai.gpt prepare-pretrain --tokens 1e9
+python -m ownai.gpt train --stage pretrain --preset t4 --hours 11   # rerun to resume
+python -m ownai.gpt prepare-sft
+python -m ownai.gpt train --stage sft --init runs/pretrain/model.pt
+python -m ownai.gpt chat runs/sft/model.pt                 # streams its replies
+```
+
+Copy the final `model.pt` to `artifacts/owngpt/model.pt` and the web UI gains an
+**OwnGPT** mode: replies stream token by token and the conversation is remembered.
+
 ## Use your own domain
 
 Create `domains/<your-topic>.yaml`:
@@ -142,9 +181,13 @@ A ChatGPT-style browser chat, served by the Python **standard library only** (no
 Flask/FastAPI) — the from-scratch ethos extends to the web layer:
 
 ```bash
-python -m ownai.cli serve --domain domains/mario-wii.yaml
+python -m ownai.cli serve
 # open http://127.0.0.1:8000
 ```
+
+One page serves every built domain: switch domain and answer mode (extractive,
+NumPy mini-GPT, OwnGPT) live, start from example questions, and unfold the
+sources and latency under each answer.
 
 ## Evaluation you can quote
 

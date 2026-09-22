@@ -11,6 +11,8 @@ dist/
 data/*/corpus.jsonl
 data/*/raw/
 artifacts/
+data/owngpt/
+runs/
 
 # OS / editors
 .DS_Store

@@ -265,9 +265,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ownai", description="Domain AI, 100% from scratch.")
     sub = p.add_subparsers(dest="command", required=True)
 
-    def add(name, fn, help_):
+    def add(name, fn, help_, domain_required=True):
         sp = sub.add_parser(name, help=help_)
-        sp.add_argument("--domain", required=True, help="path to a domain YAML config")
+        sp.add_argument("--domain", required=domain_required, help="path to a domain YAML config")
         sp.set_defaults(func=fn)
         return sp
 
@@ -283,7 +283,7 @@ def build_parser() -> argparse.ArgumentParser:
     add("eval-answers", cmd_eval_answers, "evaluate answer quality (keyword hit-rate, abstention)")
     el = add("eval-lm", cmd_eval_lm, "evaluate the mini-GPT language model (perplexity)")
     el.add_argument("--batches", type=int, default=20)
-    sv = add("serve", cmd_serve, "serve the web chat UI (browser)")
+    sv = add("serve", cmd_serve, "serve the web chat UI over every built domain", domain_required=False)
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)
     sv.add_argument("--generative", action="store_true", help="use the mini-GPT instead of extractive answers")
