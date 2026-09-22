@@ -145,8 +145,58 @@ python -m ownai.gpt train --stage sft --init runs/pretrain/model.pt
 python -m ownai.gpt chat runs/sft/model.pt                 # streams its replies
 ```
 
+What the trained model actually sounds like, and where it breaks, is documented
+in [What OwnGPT can and cannot do](#what-owngpt-can-and-cannot-do).
+
 Copy the final `model.pt` to `artifacts/owngpt/model.pt` and the web UI gains an
 **OwnGPT** mode: replies stream token by token and the conversation is remembered.
+
+## What OwnGPT can and cannot do
+
+Trained once on a free Kaggle T4: 42M parameters, 1B tokens, about 7h30 for both
+stages, final validation **bits per byte 0.68**. That is roughly GPT-2-small
+territory, and it behaves exactly like it: fluent French, unreliable facts.
+
+**What works**
+
+| Question | Answer |
+| --- | --- |
+| Qui es-tu ? | Je suis OwnGPT, un modèle de langage que Mohamed-Zayim a construit et entraîné de zéro, du tokenizer jusqu'au chat. |
+| Quelle est la capitale de la France ? | Paris |
+
+It writes grammatical French, follows the chat format, keeps the thread of a
+conversation, and knows its own identity (taught by a small hand-written set).
+
+**What does not**
+
+> **Qu'est-ce que Paris ?**
+> Paris est une ville d'Europe et d'Amérique du Nord située sur la rive droite
+> de la Seine, à l'ouest de Paris, dans la région Île-de-France.
+
+> **Comment aller aux Comores depuis Paris ?**
+> [...] 1. Accéder aux Comores: Vous pouvez visiter les bâtiments emblématiques
+> des quartiers historiques tels que le Louvre, le Louvre et le Panthéon. [...]
+
+Facts are invented, and a question outside its training distribution is answered
+with whatever pattern looks closest. This is not a tuning problem, it is the size:
+a 42M-parameter model has room for the shape of the language, not for the world.
+
+**Why it stops here.** 1B tokens is already the compute-optimal budget for 42M
+parameters (about 20 tokens per parameter), so more of the same training buys
+almost nothing. Noticeably fewer invented facts means a bigger model on more
+data: ~110M parameters on 3 to 5B tokens is roughly 45 GPU-hours on a T4, and
+even then it would still hallucinate. The useful fixes are architectural, not
+more steps:
+
+- **Ground the answers.** The retrieval stack in this repo (BM25 + word2vec) can
+  feed a retrieved passage into the prompt, and the chat data can include
+  context-based questions, so the model reads instead of remembering.
+- **Teach refusal.** The extractive mode already abstains when the corpus does
+  not cover a question (abstention_accuracy 1.00); OwnGPT has no such gate.
+
+Until then, the honest split in the web UI stands: **extractive mode answers with
+sources and is the reliable default; OwnGPT shows what a from-scratch GPT trained
+on a free GPU actually sounds like.**
 
 ## Use your own domain
 
