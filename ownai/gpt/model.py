@@ -192,8 +192,14 @@ class GPT(nn.Module):
 
     @torch.no_grad()
     def stream(self, idx, max_new_tokens: int, temperature: float = 0.8, top_k: int | None = 50,
-               top_p: float | None = 0.95, stop_token: int | None = None, generator=None):
-        """Yield sampled token ids one by one (the stop token included), with a KV cache."""
+               top_p: float | None = 0.95, stop_token: int | None = None, generator=None,
+               repetition_penalty: float = 0.0, penalty_window: int = 128):
+        """Yield sampled token ids one by one (the stop token included), with a KV cache.
+
+        ``repetition_penalty`` subtracts that much from the score of a token per
+        time it already appeared in the last ``penalty_window`` positions, which
+        breaks the loops a small model falls into ("pratiquer, pratiquer...").
+        """
         # The prompt keeps priority: generation gets whatever room is left in the
         # window, but at least a quarter of it (the prompt's oldest tokens go first).
         block = self.cfg.block_size
@@ -202,9 +208,13 @@ class GPT(nn.Module):
         cache = [None] * self.cfg.n_layer
         logits, _ = self(idx, cache=cache)
         pos = idx.shape[1]
+        seen = idx[0, -penalty_window:].tolist()
         for step in range(max_new):
-            nxt = self._sample(logits[:, -1, :].float(), temperature, top_k, top_p, generator)
+            nxt = self._sample(logits[:, -1, :].float(), temperature, top_k, top_p, generator,
+                               repetition_penalty, seen)
             token = int(nxt[0, 0])
+            seen.append(token)
+            del seen[:-penalty_window]
             yield token
             if token == stop_token or step == max_new - 1:
                 return
@@ -212,7 +222,11 @@ class GPT(nn.Module):
             pos += 1
 
     @staticmethod
-    def _sample(logits, temperature, top_k, top_p, generator):
+    def _sample(logits, temperature, top_k, top_p, generator, repetition_penalty=0.0, seen=()):
+        if repetition_penalty and len(seen):
+            ids = torch.tensor(seen, device=logits.device)
+            counts = torch.zeros_like(logits[0]).index_add_(0, ids, torch.ones_like(ids, dtype=logits.dtype))
+            logits -= repetition_penalty * counts  # the more a token was used, the harder it gets
         if temperature <= 0:
             return logits.argmax(-1, keepdim=True)
         logits = logits / temperature

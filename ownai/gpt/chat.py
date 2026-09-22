@@ -6,6 +6,10 @@ import torch
 from ownai.gpt.data import render_prompt
 from ownai.gpt.train import load_checkpoint, pick_device, tokenizer_of
 
+# A 42M model loops on its own words; taking points off tokens it just used
+# keeps answers moving without changing anything about the trained weights.
+REPETITION_PENALTY = 0.4
+
 
 class OwnGPT:
     def __init__(self, model, tok, device: str, stage: str = "sft"):
@@ -18,13 +22,14 @@ class OwnGPT:
         model.float()  # exported weights are fp16; CPU inference wants fp32
         return cls(model, tokenizer_of(ckpt), device, ckpt.get("stage", "sft"))
 
-    def _stream(self, ids, max_new_tokens, temperature, seed):
+    def _stream(self, ids, max_new_tokens, temperature, seed, penalty=REPETITION_PENALTY):
         """Yield decoded text pieces as tokens arrive, never splitting a UTF-8 character."""
         idx = torch.tensor([ids], dtype=torch.long, device=self.device)
         gen = torch.Generator(device=self.device).manual_seed(seed) if seed is not None else None
         new, sent = [], ""
         for token in self.model.stream(idx, max_new_tokens, temperature=temperature,
-                                       stop_token=self.tok.eot, generator=gen):
+                                       stop_token=self.tok.eot, generator=gen,
+                                       repetition_penalty=penalty):
             if token >= len(self.tok.vocab):  # end of text, or a new turn the model tried to open
                 break
             new.append(token)
