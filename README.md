@@ -1,5 +1,7 @@
 # OwnAI: a domain-specialized AI, built 100% from scratch
 
+<p align="center"><img src="docs/demo.gif" width="90%"/></p>
+
 [Français 🇫🇷](./README.fr.md)
 
 [![tests](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml/badge.svg)](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml)

@@ -1,5 +1,7 @@
 # OwnAI : une IA spécialisée sur un domaine, construite 100 % de zéro
 
+<p align="center"><img src="docs/demo.gif" width="90%"/></p>
+
 [English 🇬🇧](./README.md)
 
 [![tests](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml/badge.svg)](https://github.com/Zlarien/OwnAI/actions/workflows/tests.yml)
