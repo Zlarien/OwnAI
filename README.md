@@ -26,7 +26,7 @@ flowchart LR
     K --> G[Generative answer<br/>mini-GPT on our autograd]
     E --> A[Answer + sources]
     G --> A
-    Q -.-> O[OwnGPT<br/>42M params, trained on a free GPU]
+    Q -.-> O[OwnGPT<br/>59M params, trained on a free GPU]
     O -.-> A
 ```
 
@@ -157,7 +157,7 @@ Copy the final `model.pt` to `artifacts/owngpt/model.pt` and the web UI gains an
 
 ## What OwnGPT can and cannot do
 
-Trained once on a free Kaggle T4: 42M parameters, 1B tokens, about 7h30 for both
+Trained once on a free Kaggle T4: 59,253,248 parameters (the 42M core plus a separate 17M output layer), 1B tokens, about 7h30 for both
 stages, final validation **bits per byte 0.68**. That is roughly GPT-2-small
 territory, and it behaves exactly like it: fluent French, unreliable facts.
 
