@@ -26,7 +26,7 @@ flowchart LR
     K --> G[Réponse générative<br/>mini-GPT sur notre autograd]
     E --> A[Réponse + sources]
     G --> A
-    Q -.-> O[OwnGPT<br/>59M paramètres, entraîné sur GPU gratuit]
+    Q -.-> O[OwnGPT<br/>42M paramètres, entraîné sur GPU gratuit]
     O -.-> A
 ```
 
@@ -104,7 +104,7 @@ python -m ownai.cli chat      --domain domains/mario-wii.yaml --generative
 [![Ouvrir dans Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Zlarien/OwnAI/blob/main/notebooks/train_colab.ipynb)
 
 La rétropropagation écrite à la main entraîne vraiment. Voici un vrai entraînement : un
-modèle de 1,05M de paramètres, planning de learning rate en cosinus, **5000 steps sur un
+modèle de 1 055 488 paramètres, planning de learning rate en cosinus, **5000 steps sur un
 GPU Colab gratuit**, loss de 7,8 à 0,2 :
 
 ![Courbe de loss](docs/loss_curve.png)
@@ -158,7 +158,7 @@ Copie le `model.pt` final dans `artifacts/owngpt/model.pt` et l'interface web ga
 
 ## Ce qu'OwnGPT sait faire, et ce qu'il ne sait pas faire
 
-Entraîné une fois sur un T4 Kaggle gratuit : 59 253 248 paramètres (le cœur de 42M plus une couche de sortie séparée de 17M), 1 milliard de tokens,
+Entraîné une fois sur un T4 Kaggle gratuit : 42 476 032 paramètres (la couche de sortie partage la matrice d'embedding ; le checkpoint fp16 en garde une copie, soit 59 253 248 valeurs stockées), 1 milliard de tokens,
 environ 7 h 30 pour les deux étapes, **0,68 bit par octet** en validation à la fin. C'est à
 peu près le niveau de GPT-2 small, et il se comporte pareil : du français fluide, des faits
 peu fiables.

@@ -26,7 +26,7 @@ flowchart LR
     K --> G[Generative answer<br/>mini-GPT on our autograd]
     E --> A[Answer + sources]
     G --> A
-    Q -.-> O[OwnGPT<br/>59M params, trained on a free GPU]
+    Q -.-> O[OwnGPT<br/>42M params, trained on a free GPU]
     O -.-> A
 ```
 
@@ -103,7 +103,7 @@ python -m ownai.cli chat      --domain domains/mario-wii.yaml --generative
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Zlarien/OwnAI/blob/main/notebooks/train_colab.ipynb)
 
-The hand-written backprop genuinely trains. Here is a real run: a 1.05M-parameter
+The hand-written backprop genuinely trains. Here is a real run: a 1,055,488-parameter
 model, cosine LR schedule, **5000 steps on a free Colab GPU**, loss 7.8 down to 0.2:
 
 ![Training loss](docs/loss_curve.png)
@@ -157,7 +157,7 @@ Copy the final `model.pt` to `artifacts/owngpt/model.pt` and the web UI gains an
 
 ## What OwnGPT can and cannot do
 
-Trained once on a free Kaggle T4: 59,253,248 parameters (the 42M core plus a separate 17M output layer), 1B tokens, about 7h30 for both
+Trained once on a free Kaggle T4: 42,476,032 parameters (the output layer shares the embedding matrix; the fp16 checkpoint keeps a copy of it, 59,253,248 stored values), 1B tokens, about 7h30 for both
 stages, final validation **bits per byte 0.68**. That is roughly GPT-2-small
 territory, and it behaves exactly like it: fluent French, unreliable facts.
 
